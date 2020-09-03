@@ -1,17 +1,22 @@
 #version 150
 
-in  vec3  in_Position;
-in  vec3  in_Normal;
-in  vec2  in_TexCoord;
+in vec3 pos;
+in vec3 norm;
+in vec2 tex_coord;
 
-uniform mat4 projectionMatrix;
-uniform mat4 modelToWorldToView;
+uniform mat4 projection;
+uniform mat4 view;
+uniform mat4 model;
 
-out float shade;
+out vec3 Normal;
+out vec3 Frag_pos;
+out vec2 Frag_tex_coord;
 
 void main(void)
 {
-	shade = (mat3(modelToWorldToView)*in_Normal).z; // Fake shading
-	gl_Position=projectionMatrix*modelToWorldToView*vec4(in_Position, 1.0);
+	gl_Position = projection * view * model * vec4(pos, 1.0);
+	Normal = norm;
+	Frag_pos = vec3(model * vec4(pos, 1.0));
+	Frag_tex_coord = tex_coord;
 }
 
