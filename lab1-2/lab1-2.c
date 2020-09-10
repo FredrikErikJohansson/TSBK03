@@ -145,7 +145,7 @@ void init(void)
     shader = loadShaders("lab1-2.vert", "lab1-2.frag");
 
     // Load bump map (you are encouraged to try different ones)
-    LoadTGATextureSimple("bumpmaps/uppochner.tga", &bumpTex);
+    LoadTGATextureSimple("bumpmaps/kulle.tga", &bumpTex);
 
 	// load the model
     cube = LoadModelPlus("cubeexp.obj");

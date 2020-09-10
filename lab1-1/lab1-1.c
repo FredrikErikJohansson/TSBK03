@@ -66,10 +66,22 @@ Model* squareModel;
 
 //----------------------Globals-------------------------------------------------
 Model *model1;
-FBOstruct *fbo1, *fbo2;
-GLuint phongshader = 0, plaintextureshader = 0;
+FBOstruct *fbo1, *fbo2, *fbo3;
+GLuint phongshader = 0, trunkshader = 0, filtershader = 0, mergeshader = 0, plaintextureshader = 0;
 
 //-------------------------------------------------------------------------------------
+
+void runfilter(GLuint shader, FBOstruct *in1, FBOstruct *in2, FBOstruct *out) {
+    glUseProgram(shader);
+    // Many of these things would be more efficiently done once and for all
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glUniform1i(glGetUniformLocation(shader, "texUnit"), 0);
+    glUniform1i(glGetUniformLocation(shader, "texUnit2"), 1);
+    useFBO(out, in1, in2);
+    DrawModel(squareModel, shader, "in_Position", NULL, "in_TexCoord");
+    glFlush();
+}
 
 void init(void)
 {
@@ -83,13 +95,17 @@ void init(void)
 	printError("GL inits");
 
 	// Load and compile shaders
-	plaintextureshader = loadShaders("plaintextureshader.vert", "plaintextureshader.frag");  // puts texture on teapot
+	trunkshader = loadShaders("trunkshader.vert", "trunkshader.frag");  // puts texture on teapot
 	phongshader = loadShaders("phong.vert", "phong.frag");  // renders with light (used for initial renderin of teapot)
+	filtershader = loadShaders("filter.vert", "filter.frag");
+	mergeshader = loadShaders("mergeshader.vert", "mergeshader.frag");
+	plaintextureshader = loadShaders("plaintextureshader.vert", "plaintextureshader.frag");
 
 	printError("init shader");
 
 	fbo1 = initFBO(W, H, 0);
 	fbo2 = initFBO(W, H, 0);
+	fbo3 = initFBO(W, H, 0);
 
 	// load the model
 //	model1 = LoadModelPlus("teapot.obj");
@@ -156,17 +172,18 @@ void display(void)
 	// Done rendering the FBO! Set up for rendering on screen, using the result as texture!
 
 //	glFlush(); // Can cause flickering on some systems. Can also be necessary to make drawing complete.
-	useFBO(0L, fbo1, 0L);
-	glClearColor(0.0, 0.0, 0.0, 0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//useFBO(0L, fbo1, 0L);
+	//glClearColor(0.0, 0.0, 0.0, 0);
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Activate second shader program
-	glUseProgram(plaintextureshader);
-
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
-	DrawModel(squareModel, plaintextureshader, "in_Position", NULL, "in_TexCoord");
-
+	runfilter(trunkshader, fbo1, 0L, fbo2);
+	for(int i = 0; i < 20; ++i) {
+		runfilter(filtershader, fbo2, 0L, fbo3);
+		runfilter(filtershader, fbo3, 0L, fbo2);
+	}
+	runfilter(mergeshader, fbo2, fbo1, fbo3);
+	runfilter(plaintextureshader, fbo3, 0L, 0L);
 	glutSwapBuffers();
 }
 
