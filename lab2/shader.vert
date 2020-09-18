@@ -9,20 +9,34 @@ uniform mat4 matrix;
 out vec4 g_color;
 const vec3 lightDir = normalize(vec3(0.3, 0.5, 1.0));
 
-// Uppgift 3: Soft-skinning på GPU
+// Uppgift 3: Soft-skinning pï¿½ GPU
 //
-// Flytta över din implementation av soft skinning från CPU-sidan
-// till vertexshadern. Mer info finns på hemsidan.
+// Flytta ï¿½ver din implementation av soft skinning frï¿½n CPU-sidan
+// till vertexshadern. Mer info finns pï¿½ hemsidan.
+uniform mat4 bone_0_rot;
+uniform mat4 bone_0_trans;
+uniform mat4 bone_1_rot;
+uniform mat4 bone_1_trans;
 
 void main(void)
 {
 	// transformera resultatet med ModelView- och Projection-matriserna
-	gl_Position = matrix * vec4(in_Position, 1.0);
+	mat4 Mbone1_prime = bone_0_trans*bone_0_rot; 
+	mat4 Mbone2_prime = bone_1_trans*bone_1_rot;
 
-	// sätt röd+grön färgkanal till vertex Weights
+	mat4 MInvbone1 = inverse(bone_0_trans);
+	mat4 MInvbone2 = inverse(bone_1_trans);
+
+	mat4 M1 = Mbone1_prime * MInvbone1;
+	mat4 M2 = Mbone1_prime * Mbone2_prime * MInvbone2 * MInvbone1;
+	vec3 g_vertsResRow = vec3(in_TexCoord.x * M1 * vec4(in_Position, 1));
+	vec3 g_vertsResCol = vec3(in_TexCoord.y * M2 * vec4(in_Position, 1));
+	gl_Position = matrix * vec4(g_vertsResRow + g_vertsResCol, 1.0);
+
+	// sï¿½tt rï¿½d+grï¿½n fï¿½rgkanal till vertex Weights
 	vec4 color = vec4(in_TexCoord.x, in_TexCoord.y, 0.0, 1.0);
 
-	// Lägg på en enkel ljussättning på vertexarna 	
+	// Lï¿½gg pï¿½ en enkel ljussï¿½ttning pï¿½ vertexarna 	
 	float intensity = dot(in_Normal, lightDir);
 	color.xyz *= intensity;
 

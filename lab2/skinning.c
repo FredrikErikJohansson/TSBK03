@@ -214,12 +214,14 @@ void DeformCylinder()
 		for (corner = 0; corner < kMaxCorners; corner++)
 		{
 			vec3 v = g_vertsOrg[row][corner];
-			vec3 b1 = MultVec3(M1, v);
-			vec3 b2 = MultVec3(M2, v);
-			vec3 b1_w = ScalarMult(b1, (1 - weight[row]));
-			vec3 b2_w = ScalarMult(b2, weight[row]);
-			g_vertsRes[row][corner] = VectorAdd(b1_w, b2_w);
-			
+			// Uppgift 2.2 
+			// vec3 b1 = MultVec3(M1, v);
+			// vec3 b2 = MultVec3(M2, v);
+			// vec3 b1_w = ScalarMult(b1, (1 - weight[row]));
+			// vec3 b2_w = ScalarMult(b2, weight[row]);
+			//g_vertsRes[row][corner] = VectorAdd(b1_w, b2_w); // Uppgift 2.2 
+			g_vertsRes[row][corner] = v; // Uppgift 2.3
+
 			// ----=========	Uppgift 1: Hard skinning (stitching) i CPU ===========-----
 			// Deformera cylindern enligt det skelett som finns
 			// i g_bones.
@@ -275,6 +277,8 @@ void setBoneRotation(void)
 {
 	// Uppgift 3 TODO: H�r beh�ver du skicka �ver benens rotation
 	// till vertexshadern
+	glUniformMatrix4fv(glGetUniformLocation(g_shader, "bone_0_rot"), 1, GL_TRUE, g_bones[0].rot.m);
+	glUniformMatrix4fv(glGetUniformLocation(g_shader, "bone_1_rot"), 1, GL_TRUE, g_bones[1].rot.m);
 }
 
 
@@ -285,6 +289,11 @@ void setBoneLocation(void)
 {
 	// Uppgift 3 TODO: H�r beh�ver du skicka �ver benens position
 	// till vertexshadern
+	mat4 T1 = T(g_bones[0].pos.x, g_bones[0].pos.y, g_bones[0].pos.z);
+	mat4 T2 = T(g_bones[1].pos.x, g_bones[1].pos.y, g_bones[1].pos.z);
+	glUniformMatrix4fv(glGetUniformLocation(g_shader, "bone_0_trans"), 1, GL_TRUE, T1.m);
+	glUniformMatrix4fv(glGetUniformLocation(g_shader, "bone_1_trans"), 1, GL_TRUE, T2.m);
+
 }
 
 
