@@ -17,14 +17,14 @@ void main(void)
 	
 	// Calculate gradients here
 	float offset = 1.0 / 256.0; // texture size, same in both directions
-	float bs = 10*(texture(texUnit, outTexCoord + vec2(0.0, offset)) - texture(texUnit, outTexCoord)).x;
+	float bs = 10*(texture(texUnit, outTexCoord + vec2(offset, 0.0)) - texture(texUnit, outTexCoord)).x;
 	float bt = 10*(texture(texUnit, outTexCoord + vec2(0.0, offset)) - texture(texUnit, outTexCoord)).y;
 
 	// 1.
 	//vec3 normal = out_Normal + bs*Ps + bt*Pt;
 
 	// 2.
-	mat3 mvt = mat3(Ps, Pt, out_Normal);
+	mat3 mvt = transpose(mat3(Ps, Pt, out_Normal));
 	vec3 normal = vec3(bs, bt, 1);
 
     normal = normalize(normal);
