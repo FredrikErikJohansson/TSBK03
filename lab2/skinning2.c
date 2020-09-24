@@ -247,17 +247,18 @@ void DeformCylinder()
 {
   int row, corner;
 
-	mat4 rotations[kMaxBones]; 
+	//mat4 rotations[kMaxBones]; 
 	mat4 translations[kMaxBones]; 
 	mat4 primes[kMaxBones]; 
 	mat4 invPrimes[kMaxBones]; 
 	mat4 M[kMaxBones]; 
 
 	translations[0] = T(g_bones[0].pos.x, g_bones[0].pos.y, g_bones[0].pos.z);
-	rotations[0] = g_bones[0].rot;
+	//rotations[0] = g_bones[0].rot;
 	for (int i = 1; i < kMaxBones; i++) {
-		rotations[i] = g_bones[i].rot;
+		//rotations[i] = g_bones[i].rot;
 		translations[i] = T(g_bones[i].pos.x - g_bones[i-1].pos.x, g_bones[i].pos.y - g_bones[i-1].pos.y, g_bones[i].pos.z - g_bones[i-1].pos.z);
+		
 	}
 
 	// Modellkoordinater
@@ -271,7 +272,7 @@ void DeformCylinder()
 	// Benkoordinater
 	M[0] = Mult(primes[0], invPrimes[0]);
 	for (int i = 1; i < kMaxBones; i++) {
-		M[i] = Mult(Mult(primes[i], invPrimes[i]), M[i-1]);
+		M[i] = Mult(Mult(primes[i], M[i-1]), invPrimes[i]);
 	}
 	vec3 b[kMaxBones];
 	vec3 b_w[kMaxBones];
@@ -317,11 +318,11 @@ void animateBones(void)
 {
 	int bone;
 	// Hur mycket kring varje led? �ndra g�rna.
-	float angleScales[10] = {0.8f, -0.8f, 0.8f, -0.8f, 0.8f, -0.8f, 0.8f, 0.2f, 0.8f, 0.2f};
+	float angleScales[10] = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
 
 	float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
 	// Hur mycket skall vi vrida?
-	float angle = sin(time * 3.f) / 2.0f;
+	float angle = sin(time) / 2.0f;
 
 	memcpy(&g_bonesRes, &g_bones, kMaxBones*sizeof(Bone)); 
 
