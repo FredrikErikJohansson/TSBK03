@@ -103,7 +103,7 @@ enum {kNumBalls = 4}; // Change as desired, max 16
 //------------------------------Globals---------------------------------
 ModelTexturePair tableAndLegs, tableSurf;
 Model *sphere;
-Ball ball[16]; // We only use kNumBalls but textures for all 16 are always loaded so they must exist. So don't change here, change above.
+Ball ball[kNumBalls]; // We only use kNumBalls but textures for all 16 are always loaded so they must exist. So don't change here, change above.
 
 GLfloat deltaT, currentTime;
 vec3 cam, point;
@@ -176,38 +176,37 @@ void updateWorld()
 		if (ball[i].X.z > 1.84146270 - kBallSize)
 			ball[i].P.z = -abs(ball[i].P.z);
 	}
-
-	// Detect collisions, calculate speed differences, apply forces
-	for (i = 0; i < kNumBalls; i++)
+    
+    float elasticity = 1;
+    for (i = 0; i < kNumBalls; i++) {
         for (j = i+1; j < kNumBalls; j++)
         {
             // YOUR CODE HERE
-            double x2 = pow(ball[i].X.x - ball[j].X.x, 2);
-            double y2 = pow(ball[i].X.y - ball[j].X.y, 2);
-            double z2 = pow(ball[i].X.z - ball[j].X.z, 2);
-            double r2 = pow(kBallSize + kBallSize, 2);
-            if(x2 + y2 + z2 < r2) {
-                ball[i].P.x = -ball[j].P.x;
-                ball[i].P.y = -ball[j].P.y;
-                ball[i].P.z = -ball[j].P.z;
-                ball[i].P.x = -ball[j].P.x;
-                ball[i].P.y = -ball[j].P.y;
-                ball[i].P.z = -ball[j].P.z;
+            float dist = Norm(VectorSub(ball[i].X, ball[j].X)); 
+            if(dist < (2 * kBallSize)) {
+                vec3 col_normal = Normalize(VectorSub(ball[i].X, ball[j].X)); // Collision normal
+                vec3 v_rel = VectorSub(ball[i].v, ball[j].v);
+                float v_rel_proj = DotProduct(v_rel, col_normal); // The relative movement (before impact) projected on the collision normal
+                float J = -(elasticity + 1) * v_rel_proj/( (1.0/ball[i].mass + 1.0/ball[j].mass));
+                vec3 impulse = ScalarMult(col_normal, J / deltaT);
+                ball[i].F = VectorAdd(ball[i].F, impulse);
+                ball[j].F = VectorSub(ball[j].F, impulse);
+                //break; // Behöver vi verkligen breaka här? 
             }
         }
-
+    }
 	// Control rotation here to reflect
 	// friction against floor, simplified as well as more correct
 	for (i = 0; i < kNumBalls; i++)
 	{
 		// Uppgift 1
-        vec3 normal;
-        normal.x = 0;
-        normal.y = 1;
-        normal.z = 0;
-        vec3 axis = cross(normal, ball[i].v);
-        double length = sqrt(ball[i].v.x * ball[i].v.x + ball[i].v.y * ball[i].v.y + ball[i].v.z * ball[i].v.z);
-        ball[i].R = ArbRotate(axis, 0.01f*time*length);
+        // vec3 normal;
+        // normal.x = 0;
+        // normal.y = 1;
+        // normal.z = 0;
+        // vec3 axis = cross(normal, ball[i].v);
+        // double length = sqrt(ball[i].v.x * ball[i].v.x + ball[i].v.y * ball[i].v.y + ball[i].v.z * ball[i].v.z);
+        // ball[i].R = ArbRotate(axis, 0.01f*time*length);
 	}
 
 // Update state, follows the book closely
@@ -218,8 +217,9 @@ void updateWorld()
 
 		// Note: omega is not set. How do you calculate it?
 		// YOUR CODE HERE
+        // J = 2/5 M*R^2 <-----
         // omega = J^-1 * L
-        //ball[i].omega = ball[i].L;
+        ball[i].omega = ball[i].L;
         
 
 //		v := P * 1/mass
@@ -329,10 +329,11 @@ void init()
 	ball[1].X = SetVector(0, 0, 0.5);
 	ball[2].X = SetVector(0.0, 0, 1.0);
 	ball[3].X = SetVector(0, 0, 1.5);
-	ball[0].P = SetVector(1, 1, 0);
+	ball[0].P = SetVector(0, 0, 0);
 	ball[1].P = SetVector(0, 0, 1);
 	ball[2].P = SetVector(1, 0, 0);
-	ball[3].P = SetVector(0, 1, 1.00);
+	ball[3].P = SetVector(0, 0, 1.00);
+
 
     cam = SetVector(0, 1.2, 2.5);
     point = SetVector(0, 0, 1.0);
