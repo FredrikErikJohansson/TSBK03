@@ -72,7 +72,7 @@ typedef struct
 
   vec3 F, T; // accumulated force and torque
 
-//  mat4 J, Ji; We could have these but we can live without them for spheres.
+  //mat4 J, Ji; //We could have these but we can live without them for spheres.
   vec3 omega; // Angular momentum
   vec3 v; // Change in velocity
 
@@ -98,7 +98,7 @@ Material ballMt = { { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 0.0 },
                 };
 
 
-enum {kNumBalls = 4}; // Change as desired, max 16
+enum {kNumBalls = 16}; // Change as desired, max 16
 
 //------------------------------Globals---------------------------------
 ModelTexturePair tableAndLegs, tableSurf;
@@ -177,37 +177,45 @@ void updateWorld()
 			ball[i].P.z = -abs(ball[i].P.z);
 	}
     
-    float elasticity = 1;
+    float elasticity = 0.5;
     for (i = 0; i < kNumBalls; i++) {
         for (j = i+1; j < kNumBalls; j++)
         {
+
+            
             // YOUR CODE HERE
+            vec3 r = VectorSub(ball[i].X, ball[j].X);
             float dist = Norm(VectorSub(ball[i].X, ball[j].X)); 
-            if(dist < (2 * kBallSize)) {
+            //if(DotProduct(Normalize(ball[i].v), Normalize(ball[j].v)) < 0) continue;
+        
+            if(dist < ((2 * kBallSize)) && DotProduct(ball[i].v, r) < DotProduct(ball[j].v, r)) {
                 vec3 col_normal = Normalize(VectorSub(ball[i].X, ball[j].X)); // Collision normal
                 vec3 v_rel = VectorSub(ball[i].v, ball[j].v);
                 float v_rel_proj = DotProduct(v_rel, col_normal); // The relative movement (before impact) projected on the collision normal
-                float J = -(elasticity + 1) * v_rel_proj/( (1.0/ball[i].mass + 1.0/ball[j].mass));
-                vec3 impulse = ScalarMult(col_normal, J / deltaT);
-                ball[i].F = VectorAdd(ball[i].F, impulse);
-                ball[j].F = VectorSub(ball[j].F, impulse);
-                //break; // Behöver vi verkligen breaka här? 
+                float J = -((elasticity + 1) * v_rel_proj)/( (1.0/ball[i].mass + 1.0/ball[j].mass));
+                vec3 impulse = ScalarMult(col_normal, J);
+                // ball[i].F = VectorAdd(ball[i].F, ScalarMult(impulse, 1.0/ball[j].mass));
+                // ball[j].F = VectorSub(ball[j].F, ScalarMult(impulse, 1.0/ball[i].mass));
+
+                ball[i].P = VectorAdd(ball[i].P, impulse);
+                ball[j].P = VectorSub(ball[j].P, impulse);
+                // ball[i].T = VectorAdd(ball[i].T, CrossProduct(ball[j].X, impulse));
+                // ball[j].T =VectorAdd(ball[i].T, CrossProduct(ball[i].X, impulse));
             }
         }
     }
 	// Control rotation here to reflect
 	// friction against floor, simplified as well as more correct
+    float mu = 0.5;
 	for (i = 0; i < kNumBalls; i++)
 	{
-		// Uppgift 1
-        // vec3 normal;
-        // normal.x = 0;
-        // normal.y = 1;
-        // normal.z = 0;
-        // vec3 axis = cross(normal, ball[i].v);
-        // double length = sqrt(ball[i].v.x * ball[i].v.x + ball[i].v.y * ball[i].v.y + ball[i].v.z * ball[i].v.z);
-        // ball[i].R = ArbRotate(axis, 0.01f*time*length);
+        vec3 normal = SetVector(0,-kBallSize,0);
+        vec3 rel_v = VectorAdd(ball[i].v, CrossProduct(ball[i].omega, normal));
+        vec3 friction = ScalarMult(rel_v, -mu * 9.82 * ball[i].mass);
+        ball[i].T = VectorAdd(ball[i].T, CrossProduct(normal, friction));
+        ball[i].F = VectorAdd(ball[i].F, friction);
 	}
+
 
 // Update state, follows the book closely
 	for (i = 0; i < kNumBalls; i++)
@@ -219,7 +227,8 @@ void updateWorld()
 		// YOUR CODE HERE
         // J = 2/5 M*R^2 <-----
         // omega = J^-1 * L
-        ball[i].omega = ball[i].L;
+        float I = (2.0 / 5.0) * ball[i].mass * (kBallSize * kBallSize);
+        ball[i].omega = ScalarMult(ball[i].L, 1.0/I);
         
 
 //		v := P * 1/mass
@@ -248,7 +257,17 @@ void renderBall(int ballNr)
     glBindTexture(GL_TEXTURE_2D, ball[ballNr].tex);
 
     // Ball with rotation
-    transMatrix = T(ball[ballNr].X.x, kBallSize, ball[ballNr].X.z); // position
+    if(ballNr == 3) {
+        transMatrix = T(ball[ballNr].X.x, 2*kBallSize, ball[ballNr].X.z); // position
+        scaleMatrix = S(2,2,2);
+        transMatrix = Mult(transMatrix, scaleMatrix);
+    }
+    else {
+        transMatrix = T(ball[ballNr].X.x, kBallSize, ball[ballNr].X.z); // position;
+        scaleMatrix = S(1,1,1);
+        transMatrix = Mult(transMatrix, scaleMatrix);
+    }
+    //transMatrix = T(ball[ballNr].X.x, kBallSize, ball[ballNr].X.z); // position;
     tmpMatrix = Mult(transMatrix, ball[ballNr].R); // ball rotation
     tmpMatrix = Mult(viewMatrix, tmpMatrix);
     glUniformMatrix4fv(glGetUniformLocation(shader, "viewMatrix"), 1, GL_TRUE, tmpMatrix.m);
@@ -325,14 +344,15 @@ void init()
 		ball[i].P = SetVector(((float)(i % 13))/ 50.0, 0.0, ((float)(i % 15))/50.0);
 		ball[i].R = IdentityMatrix();
 	}
-	ball[0].X = SetVector(0, 0, 0);
+    ball[3].mass = 100;
+	ball[0].X = SetVector(0, 0, 0.2);
 	ball[1].X = SetVector(0, 0, 0.5);
-	ball[2].X = SetVector(0.0, 0, 1.0);
-	ball[3].X = SetVector(0, 0, 1.5);
+	ball[2].X = SetVector(0, 0, 0.8);
+	ball[3].X = SetVector(0.1, 0, 1.8);
 	ball[0].P = SetVector(0, 0, 0);
-	ball[1].P = SetVector(0, 0, 1);
-	ball[2].P = SetVector(1, 0, 0);
-	ball[3].P = SetVector(0, 0, 1.00);
+	ball[1].P = SetVector(0, 0, 0);
+	ball[2].P = SetVector(0, 0, 0);
+	ball[3].P = SetVector(0, 0, 100.00);
 
 
     cam = SetVector(0, 1.2, 2.5);
