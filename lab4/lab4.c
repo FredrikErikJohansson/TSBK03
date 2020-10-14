@@ -20,7 +20,20 @@
 
 // L�gg till egna globaler h�r efter behov.
 
+// This can be made for the closest boid or for all within a distance. 
+// This rule may be applied on a much smaller neighborhood than the others, 
+// preferably with a falloff so it creates a stronger force the closer the other boid is.
+vec3 CalcAvoidance(SpritePtr i, SpritePtr j){
+	float maxDistanceSq = 100;
+	// For all nearby boids, make a vector pointing away 
+	vec3 avoidance = SetVector(i->position.x - j->position.x, i->position.y - j->position.y, 0.0f);
 
+
+  float distance = Norm(avoidance);
+
+	
+	return avoidance;
+}
 void SpriteBehavior() // Din kod!
 {
 // L�gg till din labbkod h�r. Det g�r bra att �ndra var som helst i
@@ -31,32 +44,56 @@ void SpriteBehavior() // Din kod!
 	SpritePtr sp = gSpriteRoot;
 	for (SpritePtr i = sp; i != NULL; i = i->next) {
 		float count = 0;
-		//i->speedDiff = 0;
+		i->speedDiff = SetVector(0, 0, 0);
 		i->averagePosition = SetVector(0, 0, 0);
-		//i->averagePosition.v = 0;
+		i->avoidanceVector = SetVector(0, 0, 0);
 		
+
 		for (SpritePtr j = sp; j != NULL; j = j->next) {
 			if(j != i) {
 				float distance = Norm(VectorSub(i->position, j->position));
 				if(distance < kMaxDistance) {
-					i->averagePosition = VectorAdd(i->averagePosition, j->position);
+					//Calculate the average difference in speed between the current boid and all other boids. 
+					//Add a fraction of this to the speed of the current boid.
+					i->speedDiff = VectorAdd(i->speedDiff, VectorSub(j->speed, i->speed)); // Alignment
+					
+					// Calculate the average position of all boids within a certain distance. 
+					// Take this position minus the position of the current boid. 
+					// Add a fraction of this vector to the speed of the current boid.
+					i->averagePosition = VectorAdd(i->averagePosition, j->position); // Cohesion
+					
+					// Separation/Avoidance 
+					vec3 avoidVec = CalcAvoidance(i, j); // Avoidance
+					//i->avoidanceVector = VectorAdd(i->avoidanceVector, avoidVec); // funkar ej
+
 					count++;
 				}
 			}
 		}
 		if (count > 0){
 			// Divisions
-			i->averagePosition = ScalarMult(i->averagePosition, 1.0/count);
-			//i.avoidanceVector /= count;
+			i->speedDiff = ScalarMult(i->speedDiff, 1.0/count); // Alignment
+			i->averagePosition = ScalarMult(i->averagePosition, 1.0/count); // Cohesion
+			i->avoidanceVector = ScalarMult(i->avoidanceVector, 1.0/count); // Avoidance
 		}
-
 	}
-	float kCohesionWeight = 0.001f;
+	float kAlignmentWeight = 0.004f;
+	float kCohesionWeight = 0.002f;
+	float kAvoidanceWeight = 0.07f;
+
 	// Second loop for adding the resulting contributions
 	for (SpritePtr i = sp; i != NULL; i = i->next) {
-		i->speed = ScalarMult(Normalize(VectorAdd(i->speed, ScalarMult(i->averagePosition, kCohesionWeight))),2);
+		vec3 alignmentAmount = ScalarMult(i->speedDiff, kAlignmentWeight);
+		vec3 cohesionAmount = ScalarMult(i->averagePosition, kCohesionWeight);
+		vec3 avoidanceAmount = ScalarMult(i->avoidanceVector, kAvoidanceWeight);
+		vec3 total = VectorAdd(VectorAdd(avoidanceAmount, cohesionAmount), alignmentAmount); 
+		vec3 newSpeed = VectorAdd(i->speed, total); // Normalize här får de att fastna i kanter
+		i->speed = newSpeed;
 		i->position = VectorAdd(i->position, i->speed);
+
 	}
+
+   
 	
 }
 
@@ -138,6 +175,8 @@ void Init()
 	NewSprite(sheepFace, 250, 200, -1, 1.5);
 	NewSprite(sheepFace, 50, 200, -1, 1.5);
 	NewSprite(sheepFace, 100, 200, -2, 1.5);
+	NewSprite(blackFace, 50, 200, -2, 1.5);
+
 }
 
 int main(int argc, char **argv)

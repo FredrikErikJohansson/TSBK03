@@ -59,8 +59,9 @@ struct SpriteRec *NewSprite(TextureData *f, GLfloat h, GLfloat v, GLfloat hs, GL
 	// sp->speed.v = vs;
 	sp->face = f;
 	sp->rotation = 0;
-
-	sp->averagePosition = SetVector(h,v,0);
+	sp->speedDiff = SetVector(hs,vs,0);
+	sp->averagePosition = SetVector(0,0,0);
+	sp->avoidanceVector = SetVector(0,0,0);
 	// sp->averagePosition.h = 0;
 	// sp->averagePosition.v = 0;
 	return sp;
