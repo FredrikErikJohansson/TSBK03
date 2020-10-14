@@ -15,10 +15,10 @@
 #include "LoadTGA.h"
 #include "VectorUtils3.h"
 
-typedef struct FPoint
-{
-	GLfloat h, v;
-} FPoint;
+// typedef struct FPoint
+// {
+// 	GLfloat h, v;
+// } FPoint;
 
 typedef struct SpriteRec
 {

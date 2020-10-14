@@ -74,15 +74,19 @@ void HandleSprite(SpritePtr sp)
 	sp->position = VectorAdd(sp->position, sp->speed);
 	// sp->position.h += sp->speed.h;
 	// sp->position.v += sp->speed.v;
-	if (sp->position.x < 0)
+
+	// vec3 r = VectorSub(ball[i].X, ball[j].X);
+	// DotProduct(ball[i].v, r) < 0
+
+	if (sp->position.x < 0.0f)
 	{
 		sp->speed.x = fabs(sp->speed.x);
-		sp->position.x = 0;
+		sp->position.x = 0.0f;
 	}
-	if (sp->position.y < 0)
+	if (sp->position.y < 0.0f)
 	{
 		sp->speed.y = fabs(sp->speed.y);
-		sp->position.y = 0;
+		sp->position.y = 0.0f;
 	}
 	if (sp->position.x > gWidth)
 	{
